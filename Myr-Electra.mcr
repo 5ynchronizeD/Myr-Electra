@@ -1,9 +1,7 @@
 ﻿#Version 8
 #BeginDescription
-Last modified by: OBOS (Oscar.ragnerby@obos.se)
-08.06.2020  -  version 1.11
-
-Expose display to hsbMake
+Last modified by: Anno Sportel (anno.sportel@hsbcad.com)
+21.10.2015  -  version 1.09
 
 
 
@@ -26,7 +24,7 @@ Expose display to hsbMake
 #ImplInsert 1
 #FileState 1
 #MajorVersion 1
-#MinorVersion 11
+#MinorVersion 9
 #KeyWords 
 #BeginContents
 /// <summary Lang=en>
@@ -41,7 +39,7 @@ Expose display to hsbMake
 /// 
 /// </remark>
 
-/// <version  value="1.10" date="31.01.2018"></version>
+/// <version  value="1.09" date="21.10.2015"></version>
 
 /// <history>
 /// AS - 1.00 - 12.03.2008 - Pilot version
@@ -54,9 +52,6 @@ Expose display to hsbMake
 /// AS - 1.07 - 03.09.2015 - Add face to warning ;)
 /// AS - 1.08 - 03.09.2015 - Show warning in plan view
 /// AS - 1.09 - 21.10.2015 - Tube only mills non vertical beams
-/// AS - 1.10 - 31.01.2018 - Add tool as a Drill to the sheets.
-/// OR - 1.11 - 08.06.2020 - Expose display to hsbMake
-
 /// </history>
 
 //Script uses mm
@@ -327,15 +322,13 @@ for( int i=0;i<nNrOfBoxes;i++ ){
 	PlaneProfile ppBox(plBox);
 	dpBox.draw(ppBox, hatch);
 	dpBox.draw(plBox);
-	if( bShowShCutOut )
-	{
-		Drill drill(ptBox - vz * U(20), ptBox + vz * U(20), 0.5 * dBoxSize);
-//		SolidSubtract ssSh(Body(plBox, vz*U(1000),0));
+	
+	if( bShowShCutOut ){
+		SolidSubtract ssSh(Body(plBox, vz*U(1000),0));
 		for( int j=0;j<arSh.length();j++ ){
 			Sheet sh = arSh[j];
 			if( sh.myZoneIndex() * nSide > 0 ){
-//				sh.addTool(ssSh);
-				sh.addTool(drill);
+				sh.addTool(ssSh);
 			}
 		}
 	}
@@ -431,7 +424,7 @@ BeamCut bmCutBottom(ptInsert - vy * 0.5 * dBoxSize - vz * dDrillDepth * nSide, v
 Display dpText(-1);
 dpText.elemZone(el, nZoneIndex, 'I');
 dpText.textHeight(.25 * dSymbolSize);
-Display dpTextElevation(5);
+Display dpTextElevation(-1);
 dpTextElevation.elemZone(el, nZoneIndex, 'I');
 dpTextElevation.textHeight(.25 * dSymbolSize);
 dpTextElevation.addViewDirection(vz);
@@ -471,7 +464,6 @@ else if( nConduit == 2 ){//Top & bottom
 }
 else{//None
 }
-
 
 //Apply No Nail zones
 if( bNoNail ){
@@ -921,17 +913,16 @@ if( bShowDescriptionInElevation ){
 	dpSymbolElevation.draw(sDescription, ptText, vx, vy, 1, 1, _kDevice);
 }
 
-//dpSymbol.showInDxa(TRUE);
-//dpText.showInDxa(TRUE);
-dpTextElevation.showInDxa(TRUE);
-dpSymbolElevation.showInDxa(TRUE);
-dpConduit.showInDxa(TRUE);
-dpBox.showInDxa(TRUE);
-//dpError.showInDxa(TRUE);
-//dpOk.showInDxa(TRUE);
-//dpConduitInDispRep.showInDxa(TRUE);
-//dpTextInDispRep.showInDxa(TRUE);
-//dpSymbolInDispRep.showInDxa(TRUE);
+
+_Map.setString("OverrideDescription", sOverruleDescription);
+
+
+
+
+
+
+
+
 
 
 
@@ -961,22 +952,17 @@ dpBox.showInDxa(TRUE);
 
 
 
-
-
 #End
 #BeginMapX
 <?xml version="1.0" encoding="utf-16"?>
 <Hsb_Map>
   <lst nm="TslIDESettings">
-    <lst nm="HostSettings">
-      <dbl nm="PreviewTextHeight" ut="L" vl="1" />
+    <lst nm="HOSTSETTINGS">
+      <dbl nm="PREVIEWTEXTHEIGHT" ut="L" vl="1" />
     </lst>
     <lst nm="{E1BE2767-6E4B-4299-BBF2-FB3E14445A54}">
-      <lst nm="BreakPoints" />
+      <lst nm="BREAKPOINTS" />
     </lst>
-  </lst>
-  <lst nm="TslInfo">
-    <lst nm="TSLINFO" />
   </lst>
   <unit ut="L" uv="millimeter" />
   <unit ut="A" uv="radian" />
