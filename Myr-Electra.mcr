@@ -1,7 +1,7 @@
 ﻿#Version 8
 #BeginDescription
-Last modified by: Anno Sportel (anno.sportel@hsbcad.com)
-21.10.2015  -  version 1.09
+Last modified by: OBOS (Oscar.ragnerby@obos.se)
+OR - 1.11 - 28.10.2019 - Add option to mill on the back aswell
 
 
 
@@ -24,7 +24,7 @@ Last modified by: Anno Sportel (anno.sportel@hsbcad.com)
 #ImplInsert 1
 #FileState 1
 #MajorVersion 1
-#MinorVersion 9
+#MinorVersion 11
 #KeyWords 
 #BeginContents
 /// <summary Lang=en>
@@ -39,7 +39,7 @@ Last modified by: Anno Sportel (anno.sportel@hsbcad.com)
 /// 
 /// </remark>
 
-/// <version  value="1.09" date="21.10.2015"></version>
+/// <version  value="1.11" date="28.10.2019"></version>
 
 /// <history>
 /// AS - 1.00 - 12.03.2008 - Pilot version
@@ -52,6 +52,8 @@ Last modified by: Anno Sportel (anno.sportel@hsbcad.com)
 /// AS - 1.07 - 03.09.2015 - Add face to warning ;)
 /// AS - 1.08 - 03.09.2015 - Show warning in plan view
 /// AS - 1.09 - 21.10.2015 - Tube only mills non vertical beams
+/// AS - 1.10 - 31.01.2018 - Add tool as a Drill to the sheets.
+/// OR - 1.11 - 28.10.2019 - Add option to mill on the back aswell
 /// </history>
 
 //Script uses mm
@@ -132,6 +134,10 @@ PropInt nToolingIndex(4,0,T("Tooling index"));
 String arSVacuum[]= {T("No"),T("Yes")};
 int arNVacuum[]={_kNo, _kYes};
 PropString sVacuum(11,arSVacuum,T("Vacuum"));
+String arSMillBackOverride[]= {T("No"),T("Yes")};
+int arNMillBackOverride[]={_kNo, _kYes};
+PropString sMillBackOverride(12,arSMillBackOverride,T("Override milling on back"));
+
 
 //-------------------------------------------------------------------
 
@@ -162,7 +168,7 @@ if (_bOnInsert) {
 // resolve properties
 int nNrOfBoxes = arNNrOfBoxes[ arSObject.find(sObject,0) ];
 int nDirection = arNTrueFalse[ arSSide.find(sSide,0) ];
-int nSide = arNSide[ arSSide.find(sSide,0) ];
+int nSide = arNSide[ arSSide.find(sSide,0)];
 Hatch hatch( arSHatch[ arSSide.find(sSide,0) ], 100);
 int nConduit = arNConduit[ arSConduit.find(sConduit) ];
 int bDrill = arNTrueFalse[ arSYesNo.find(sDrill, 0) ];
@@ -180,6 +186,7 @@ int bShowShCutOut = arNTrueFalse[ arSYesNo.find(sShCutOut, 0) ];
 int bDrillBox = arNTrueFalse[ arSYesNo.find(sDrillBox, 1) ];
 if( !bDrillBox )nToolingIndex.setReadOnly(TRUE);
 int nVacuum = arNVacuum[arSVacuum.find(sVacuum,0)];
+int nOverrideMill = arNMillBackOverride[arSMillBackOverride.find(sMillBackOverride,0)];
 if( !bDrillBox )sVacuum.setReadOnly(TRUE);
 
 //Check if there is an element selected
@@ -194,12 +201,17 @@ CoordSys csEl = el.coordSys();
 Vector3d vx = csEl.vecX();
 Vector3d vy = csEl.vecY();
 Vector3d vz = csEl.vecZ();
+Point3d ptOverrideBack;
 
 //Project insertion point to front of wall outline.
 _Pt0 = _Pt0.projectPoint(Plane(el.ptOrg(), vy),0);
 _Pt0 = _Pt0.projectPoint(Plane(el.ptOrg(), vz),0);
-if( nSide == -1 ){//Back
+if( nSide == -1){//Back
 	_Pt0 = _Pt0 - vz * el.zone(0).dH();
+}
+else
+{
+	ptOverrideBack = _Pt0;
 }
 
 _PtG.setLength(0);
@@ -207,6 +219,7 @@ _PtG.append(_Pt0 + vy * dHeight);
 
 //Insertion point
 Point3d ptInsert = _Pt0 + vy * dHeight;
+//Point3d ptInsertOverride = ptOverrideBack + vy * dHeight;
 
 //Array of beams
 Beam arBm[] = el.beam();
@@ -323,12 +336,15 @@ for( int i=0;i<nNrOfBoxes;i++ ){
 	dpBox.draw(ppBox, hatch);
 	dpBox.draw(plBox);
 	
-	if( bShowShCutOut ){
-		SolidSubtract ssSh(Body(plBox, vz*U(1000),0));
+	if( bShowShCutOut )
+	{
+		Drill drill(ptBox - vz * U(20), ptBox + vz * U(20), 0.5 * dBoxSize);
+//		SolidSubtract ssSh(Body(plBox, vz*U(1000),0));
 		for( int j=0;j<arSh.length();j++ ){
 			Sheet sh = arSh[j];
 			if( sh.myZoneIndex() * nSide > 0 ){
-				sh.addTool(ssSh);
+//				sh.addTool(ssSh);
+				sh.addTool(drill);
 			}
 		}
 	}
@@ -403,6 +419,16 @@ for( int i=0;i<arBm.length();i++ ){
 }
 ptTop = ptInsert + vy * dPtTop;
 ptBottom = ptInsert + vy * dPtBottom;
+ptInsert.vis();
+
+
+//ptInsertOverride.vis();
+
+
+Point3d ptBottomOverride = ptBottom - vz * el.zone(0).dH();
+
+//ptTopOverride.vis();
+//ptBottomOverride.vis();
 
 ptTop.vis();
 ptBottom.vis();
@@ -416,8 +442,40 @@ dpConduitInDispRep.showInDispRep(sShowInDispRep);
 PLine plConduitTop(ptInsert + vy * 0.5 * dBoxSize, ptTop);
 PLine plConduitBottom(ptInsert - vy * 0.5 * dBoxSize, _Pt0);
 
+
+//PLine plConduitBottomOverride(ptInsertOverride - vy * 0.5 * dBoxSize, ptOverrideBack);
+
+//plConduitTopOverride.vis();
+
+//plConduitTop.vis();
+//Vector3d vOverride(ptOverrideBack);
+//CoordSys cs1;
+//Vector3d vecTranslation = _Pt0 - vz * el.zone(0).dH();
+//cs1.setToTranslation(vecTranslation);
+//
+//PLine plConduitTopOverride;
+//plConduitTopOverride.transformBy(cs1);
+//plConduitTopOverride.vis(2);
+
 double dDrillHeightTop = vy.dotProduct(ptTop - (ptInsert + vy * 0.5 * dBoxSize));
+
+//BeamCut bmCutTopOverride;
 BeamCut bmCutTop(ptInsert + vy * 0.5 * dBoxSize - vz * dDrillDepth * nSide, vx, vy, vz, dDrillWidth, 1.1*dDrillHeightTop, U(500), 0, 1, nSide);
+
+
+Point3d ptInsertOverride = ptInsert - vz * el.zone(0).dH();
+Point3d ptTopOverride = ptTop - vz * el.zone(0).dH();
+PLine plConduitTopOverride(ptInsertOverride + vy * 0.5 * dBoxSize, ptTopOverride);
+double dDrillHeightTopOverride = vy.dotProduct(ptTop - (ptInsertOverride + vy * 0.5 * dBoxSize));
+
+BeamCut bmCutTopOverride(ptInsertOverride + vy * 0.5 * dBoxSize - vz * dDrillDepth * -1, vx, vy, vz, U(60), 1.1*dDrillHeightTopOverride, U(500), 0, 1, -1);
+
+
+//BeamCut bmCutTop;
+//if(nOverrideMill == 1 && nSide == 1)
+//{
+//BeamCut bmCutTopBack(ptInsertOverride + vy * 0.5 * dBoxSize - vz * dDrillDepth * -1, vx, vy, vz, dDrillWidth, 1.1*dDrillHeightTop, U(500), 0, 1, -1);
+//}
 double dDrillHeightBottom = vy.dotProduct((ptInsert - vy * 0.5 * dBoxSize) - ptBottom);
 BeamCut bmCutBottom(ptInsert - vy * 0.5 * dBoxSize - vz * dDrillDepth * nSide, vx, vy, vz, dDrillWidth, 1.1*dDrillHeightBottom, U(500), 0, -1, nSide);
 
@@ -437,7 +495,16 @@ dpTextInDispRep.showInDispRep(sShowInDispRep);
 if( nConduit == 0 ){//Top
 	dpConduit.draw(plConduitTop);
 	dpConduitInDispRep.draw(plConduitTop);
-	if( bDrill ) bmCutTop.addMeToGenBeamsIntersect(arBmNonVertical);
+	
+	if( bDrill ) 
+	{
+		bmCutTop.addMeToGenBeamsIntersect(arBmNonVertical);
+		if(nOverrideMill == 1)
+		{
+		bmCutTopOverride.addMeToGenBeamsIntersect(arBmNonVertical);
+			
+		}
+	}
 	
 	//Draw pipe diameter
 	dpTextElevation.draw(sPipeSize, ptTop, vx, vy, 0, 3, _kDevice);
@@ -914,9 +981,6 @@ if( bShowDescriptionInElevation ){
 }
 
 
-_Map.setString("OverrideDescription", sOverruleDescription);
-
-
 
 
 
@@ -952,18 +1016,20 @@ _Map.setString("OverrideDescription", sOverruleDescription);
 
 
 
+
 #End
 #BeginMapX
 <?xml version="1.0" encoding="utf-16"?>
 <Hsb_Map>
   <lst nm="TslIDESettings">
-    <lst nm="HOSTSETTINGS">
-      <dbl nm="PREVIEWTEXTHEIGHT" ut="L" vl="1" />
+    <lst nm="HostSettings">
+      <dbl nm="PreviewTextHeight" ut="L" vl="1" />
     </lst>
     <lst nm="{E1BE2767-6E4B-4299-BBF2-FB3E14445A54}">
-      <lst nm="BREAKPOINTS" />
+      <lst nm="BreakPoints" />
     </lst>
   </lst>
+  <lst nm="TslInfo" />
   <unit ut="L" uv="millimeter" />
   <unit ut="A" uv="radian" />
 </Hsb_Map>
