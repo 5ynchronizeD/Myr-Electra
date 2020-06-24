@@ -3,8 +3,6 @@
 Last modified by: OBOS (Oscar.ragnerby@obos.se)
 08.06.2020  -  version 1.11
 
-Expose display to hsbMake
-
 
 
 
@@ -431,7 +429,7 @@ BeamCut bmCutBottom(ptInsert - vy * 0.5 * dBoxSize - vz * dDrillDepth * nSide, v
 Display dpText(-1);
 dpText.elemZone(el, nZoneIndex, 'I');
 dpText.textHeight(.25 * dSymbolSize);
-Display dpTextElevation(5);
+Display dpTextElevation(-1);
 dpTextElevation.elemZone(el, nZoneIndex, 'I');
 dpTextElevation.textHeight(.25 * dSymbolSize);
 dpTextElevation.addViewDirection(vz);
@@ -921,17 +919,17 @@ if( bShowDescriptionInElevation ){
 	dpSymbolElevation.draw(sDescription, ptText, vx, vy, 1, 1, _kDevice);
 }
 
-//dpSymbol.showInDxa(TRUE);
-//dpText.showInDxa(TRUE);
+dpSymbol.showInDxa(TRUE);
+dpText.showInDxa(TRUE);
 dpTextElevation.showInDxa(TRUE);
 dpSymbolElevation.showInDxa(TRUE);
 dpConduit.showInDxa(TRUE);
 dpBox.showInDxa(TRUE);
-//dpError.showInDxa(TRUE);
-//dpOk.showInDxa(TRUE);
-//dpConduitInDispRep.showInDxa(TRUE);
-//dpTextInDispRep.showInDxa(TRUE);
-//dpSymbolInDispRep.showInDxa(TRUE);
+
+
+
+
+
 
 
 
@@ -940,7 +938,6 @@ dpBox.showInDxa(TRUE);
 
 #End
 #BeginThumbnail
-
 
 
 
@@ -975,9 +972,7 @@ dpBox.showInDxa(TRUE);
       <lst nm="BreakPoints" />
     </lst>
   </lst>
-  <lst nm="TslInfo">
-    <lst nm="TSLINFO" />
-  </lst>
+  <lst nm="TslInfo" />
   <unit ut="L" uv="millimeter" />
   <unit ut="A" uv="radian" />
 </Hsb_Map>
